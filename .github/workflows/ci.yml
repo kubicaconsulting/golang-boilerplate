@@ -1,0 +1,91 @@
+name: CI
+on:
+  push:
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.27.3'
+          cache: true
+      - run: make docker-config
+      - run: make check
+      - run: make test-race
+      - run: make vuln
+      - run: make build
+  integration:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: app
+          POSTGRES_PASSWORD: test-only
+          POSTGRES_DB: app_test
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U app -d app_test"
+          --health-interval 5s --health-timeout 3s --health-retries 10
+    env:
+      TEST_DATABASE_DSN: postgres://app:test-only@localhost:5432/app_test?sslmode=disable
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.27.3'
+          cache: true
+      - run: make test-integration
+      - run: make test-e2e
+      - run: make test-e2e
+        env:
+          E2E_DATABASE_DSN: postgres://app:test-only@localhost:5432/app_test?sslmode=disable
+
+  containers:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: docker build --target production -t microservice:ci .
+      - run: docker build --target dev -t microservice:dev-ci .
+      - name: Smoke-test compiled container
+        run: |
+          smoke_api_key="$(openssl rand -hex 32)"
+          smoke_key_digest="$(printf '%s' "$smoke_api_key" | openssl dgst -sha256 -r | cut -d ' ' -f 1)"
+          smoke_api_keys="$(printf '[{"id":"ci-smoke","sha256":"%s","subject":"ci-smoke","scopes":["users:read"]}]' "$smoke_key_digest")"
+          docker run -d --name microservice-ci \
+            -e APP_ENV=local -e APP_HTTP_ADDRESS=:8080 \
+            -e "APP_AUTH_API_KEYS=$smoke_api_keys" \
+            -p 127.0.0.1:18080:8080 microservice:ci
+          curl --fail --retry 20 --retry-delay 1 --retry-connrefused http://127.0.0.1:18080/readyz
+          curl --fail -H "X-API-Key: $smoke_api_key" http://127.0.0.1:18080/api/v1/users
+      - if: always()
+        run: docker rm -f microservice-ci || true
+
+  release-artifact:
+    if: github.event_name == 'push'
+    needs: [checks, integration, containers]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Build uniquely identified image
+        env:
+          RELEASE_VERSION: sha-${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
+        run: |
+          VERSION="$RELEASE_VERSION" IMAGE_NAME=microservice make release-image
+          mkdir -p release
+          docker run --rm "microservice:$RELEASE_VERSION" --version > release/build-info.json
+          docker image inspect "microservice:$RELEASE_VERSION" > release/image-info.json
+          docker save "microservice:$RELEASE_VERSION" | gzip > release/image.tar.gz
+          cd release
+          sha256sum image.tar.gz build-info.json image-info.json > SHA256SUMS
+      - uses: actions/upload-artifact@v4
+        with:
+          name: microservice-${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: release/
+          retention-days: 14

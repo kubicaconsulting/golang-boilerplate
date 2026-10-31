@@ -1,0 +1,12 @@
+#!/bin/sh
+set -eu
+
+cd "$(git rev-parse --show-toplevel)"
+make lint test-unit openapi
+
+# Generated output must match what will be committed; never stage files implicitly.
+if ! git ls-files --error-unmatch api/openapi.json >/dev/null 2>&1 ||
+  ! git diff --quiet -- api/openapi.json; then
+  printf '%s\n' 'OpenAPI specification changed. Review and stage api/openapi.json, then retry the commit.' >&2
+  exit 1
+fi

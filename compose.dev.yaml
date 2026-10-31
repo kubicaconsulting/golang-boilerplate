@@ -1,0 +1,19 @@
+# docker compose -f compose.yaml -f compose.dev.yaml up --build
+services:
+  api:
+    image: ${SERVICE_IMAGE:-go-microservice-boilerplate}:dev
+    build:
+      target: dev
+      args:
+        AIR_VERSION: v1.67.4
+    # Polling handles bind-mount event delivery on Docker Desktop.
+    command: ["-build.poll=true", "-build.poll_interval=500"]
+    volumes:
+      - .:/src
+      - air-build:/src/.air
+      - go-modules:/go/pkg/mod
+      - go-build:/root/.cache/go-build
+volumes:
+  air-build:
+  go-modules:
+  go-build:

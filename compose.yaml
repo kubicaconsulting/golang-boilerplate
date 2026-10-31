@@ -1,0 +1,80 @@
+# Defaults run the compiled service locally with memory persistence.
+# PostgreSQL and the collector remain optional profiles.
+services:
+  api:
+    image: ${SERVICE_IMAGE:-go-microservice-boilerplate}:production
+    build:
+      context: .
+      target: production
+    environment:
+      - APP_ENV=${APP_ENV:-local}
+      - APP_HTTP_ADDRESS=:8080
+      - APP_DATABASE_DRIVER=${APP_DATABASE_DRIVER:-memory}
+      - APP_SERVICE_NAME
+      - APP_HTTP_READ_HEADER_TIMEOUT
+      - APP_HTTP_READ_TIMEOUT
+      - APP_HTTP_WRITE_TIMEOUT
+      - APP_HTTP_IDLE_TIMEOUT
+      - APP_HTTP_MAX_BODY_BYTES
+      - APP_HTTP_DOCS
+      - APP_DATABASE_MAX_CONNS
+      - APP_DATABASE_MIN_CONNS
+      - APP_DATABASE_MAX_CONN_LIFETIME
+      - APP_DATABASE_MAX_CONN_IDLE_TIME
+      - APP_DATABASE_MIGRATION_TIMEOUT
+      - APP_DATABASE_CONNECT_TIMEOUT
+      - APP_DATABASE_DSN
+      - APP_AUTH_API_KEYS
+      - APP_AUTH_JWT_ENABLED
+      - APP_AUTH_JWT_ISSUER
+      - APP_AUTH_JWT_AUDIENCE
+      - APP_AUTH_JWT_JWKS_URL
+      - APP_AUTH_JWT_PUBLIC_KEY_PEM
+      - APP_LOGGING_LEVEL
+      - APP_LOGGING_FORMAT
+      - APP_LOGGING_COLOR
+      - NO_COLOR
+      - APP_TELEMETRY_SAMPLE_RATIO
+      - APP_TELEMETRY_EXPORT_TIMEOUT
+      - APP_SHUTDOWN_DRAIN_TIMEOUT
+      - APP_SHUTDOWN_CLEANUP_TIMEOUT
+      - APP_SHUTDOWN_TELEMETRY_TIMEOUT
+      - APP_FLAGS_INIT_TIMEOUT
+      - APP_TELEMETRY_ENABLED
+      - APP_FLAGS_PROVIDER
+      - APP_FLAGS_SDK_KEY
+      - APP_FLAGS_VALUES
+      - OTEL_EXPORTER_OTLP_ENDPOINT
+      - OTEL_EXPORTER_OTLP_TRACES_ENDPOINT
+      - OTEL_EXPORTER_OTLP_METRICS_ENDPOINT
+      - OTEL_EXPORTER_OTLP_LOGS_ENDPOINT
+      - OTEL_EXPORTER_OTLP_TRACES_HEADERS
+      - OTEL_EXPORTER_OTLP_METRICS_HEADERS
+      - OTEL_EXPORTER_OTLP_LOGS_HEADERS
+      - OTEL_EXPORTER_OTLP_HEADERS
+      - OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE
+    ports: ["127.0.0.1:${SERVICE_PORT:-8080}:8080"]
+    init: true
+    stop_grace_period: 35s
+  postgres:
+    image: postgres:17-alpine
+    profiles: [database]
+    environment:
+      POSTGRES_USER: app
+      POSTGRES_PASSWORD: local-only-password
+      POSTGRES_DB: app
+    ports: ["127.0.0.1:${POSTGRES_PORT:-5432}:5432"]
+    healthcheck:
+      test: [CMD-SHELL, "pg_isready -U app -d app"]
+      interval: 2s
+      timeout: 2s
+      retries: 20
+    volumes: [postgres-data:/var/lib/postgresql/data]
+  collector:
+    image: otel/opentelemetry-collector-contrib:0.137.0
+    profiles: [telemetry]
+    command: ["--config=/etc/otelcol/config.yaml"]
+    ports: ["127.0.0.1:${OTLP_PORT:-4318}:4318"]
+    volumes: ["./deploy/otel-collector.yaml:/etc/otelcol/config.yaml:ro"]
+volumes:
+  postgres-data:

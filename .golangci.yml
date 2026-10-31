@@ -1,0 +1,201 @@
+# Policy decisions and reference migration: docs/code-quality.md.
+version: "2"
+run:
+  timeout: 5m
+  build-tags: [integration, e2e]
+linters:
+  default: none
+  enable:
+    - errcheck
+    - govet
+    - ineffassign
+    - staticcheck
+    - unused
+    - asasalint
+    - asciicheck
+    - bidichk
+    - bodyclose
+    - canonicalheader
+    - copyloopvar
+    - cyclop
+    - dupl
+    - durationcheck
+    - errname
+    - errorlint
+    - exhaustive
+    - fatcontext
+    - forbidigo
+    - funlen
+    - gocheckcompilerdirectives
+    - gochecknoglobals
+    - gochecknoinits
+    - gochecksumtype
+    - gocognit
+    - goconst
+    - gocritic
+    - gocyclo
+    - gomoddirectives
+    - goprintffuncname
+    - gosec
+    - iface
+    - intrange
+    - lll
+    - loggercheck
+    - makezero
+    - mirror
+    - modernize
+    - mnd
+    - musttag
+    - nakedret
+    - nestif
+    - nilerr
+    - nilnil
+    - noctx
+    - nolintlint
+    - nonamedreturns
+    - nosprintfhostport
+    - perfsprint
+    - predeclared
+    - promlinter
+    - protogetter
+    - reassign
+    - recvcheck
+    - revive
+    - rowserrcheck
+    - sloglint
+    - spancheck
+    - sqlclosecheck
+    - testableexamples
+    - testifylint
+    - testpackage
+    - tparallel
+    - unconvert
+    - unparam
+    - usestdlibvars
+    - wastedassign
+    - whitespace
+    - depguard
+  settings:
+    # Use the pinned tool's full suite, respecting the language version in go.mod.
+    modernize:
+      disable: []
+    # Pin the reference's implicit defaults as visible policy values.
+    lll:
+      line-length: 120
+      tab-width: 1
+    gocyclo:
+      min-complexity: 30
+    nestif:
+      min-complexity: 5
+    dupl:
+      threshold: 150
+    cyclop:
+      max-complexity: 30
+      package-average: 10.0
+
+    errcheck:
+      check-type-assertions: true
+
+    exhaustive:
+      check:
+        - switch
+        - mapliteral
+
+    funlen:
+      lines: 100
+      statements: 50
+      ignore-comments: true
+
+    gochecksumtype:
+      default-signifies-exhaustive: false
+
+    gocognit:
+      min-complexity: 20
+
+    gocritic:
+      settings:
+        captLocal:
+          paramsOnly: false
+        underef:
+          skipRecvDeref: false
+
+    govet:
+      enable-all: true
+      disable:
+        - fieldalignment
+      settings:
+        shadow:
+          strict: true
+
+    mnd:
+      ignored-functions:
+        - args.Error
+        - flag.Arg
+        - flag.Duration.*
+        - flag.Float.*
+        - flag.Int.*
+        - flag.Uint.*
+        - os.Chmod
+        - os.Mkdir.*
+        - os.OpenFile
+        - os.WriteFile
+        - prometheus.ExponentialBuckets.*
+        - prometheus.LinearBuckets
+
+    nakedret:
+      max-func-lines: 0
+
+    nolintlint:
+      allow-no-explanation: []
+      require-explanation: true
+      require-specific: true
+
+    perfsprint:
+      strconcat: false
+
+    reassign:
+      patterns:
+        - ".*"
+
+    sloglint:
+      no-global: "all"
+      context: "scope"
+
+    staticcheck:
+      checks: ["all"]
+    depguard:
+      rules:
+        maintained-dependencies:
+          list-mode: lax
+          files: ["$all"]
+          deny:
+            - pkg: github.com/golang/protobuf
+              desc: Use google.golang.org/protobuf.
+            - pkg: github.com/satori/go.uuid
+              desc: Use github.com/google/uuid.
+            - pkg: "github.com/gofrs/uuid$"
+              desc: Use github.com/gofrs/uuid/v5.
+  exclusions:
+    presets: []
+    rules:
+      # Test fixtures focus on scenarios; retain security/context/body checks.
+      - path: '_test\.go$'
+        linters: [dupl, funlen, goconst, cyclop, gocognit, gocyclo, nestif, mnd]
+      # White-box tests inspect lifecycle, SDK internals and private console-handler semantics.
+      - path: 'internal/app/(drain|shutdown)_test\.go$|internal/platform/featureflags/provider_test\.go$|internal/platform/observability/console_test\.go$'
+        linters: [testpackage]
+      # Linker -X metadata must be package variables, never runtime clients.
+      - path: 'internal/buildinfo/info\.go$'
+        linters: [gochecknoglobals]
+      # Administrative command output is a deliberate CLI contract.
+      - path: "^cmd/"
+        linters: [forbidigo]
+      # The executable path/arguments come from a controlled temporary build fixture.
+      - path: '^tests/e2e/service_test\.go$'
+        text: "G204:"
+        linters: [gosec]
+issues:
+  max-same-issues: 0
+  max-issues-per-linter: 0
+formatters:
+  enable: [gofmt, goimports]

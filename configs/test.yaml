@@ -1,0 +1,12 @@
+# Public development credential; explicitly rejected in staging/production.
+http:
+  docs: true
+logging:
+  level: error
+  format: text
+auth:
+  api_keys:
+    - id: local-development
+      sha256: 4c88089bdf15cb0dffde5c179461a2f99fa7cfb0bed250a8d87f8aa1d80eaa11
+      subject: local-developer
+      scopes: [users:read, users:write]

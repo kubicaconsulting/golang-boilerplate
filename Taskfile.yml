@@ -1,0 +1,50 @@
+version: '3'
+tasks:
+  hooks:install:
+    cmds: [make hooks-install]
+  fmt:
+    cmds: [make fmt]
+  format:check:
+    cmds: [make format-check]
+  lint:
+    cmds: [make lint]
+  lint:fix:
+    cmds: [make lint-fix]
+  lint:config:
+    cmds: [make lint-config-check]
+  version:
+    cmds: [make version]
+  release:image:
+    cmds: [make release-image]
+  dev:postgres:
+    cmds: [make dev-postgres]
+  dev:
+    cmds: [make dev]
+  docker:up:
+    cmds: [make docker-up]
+  docker:dev:
+    cmds: [make docker-dev]
+  docker:down:
+    cmds: [make docker-down]
+  deps:check:
+    cmds: [make deps-check]
+  run:
+    cmds: [make run]
+  build:
+    cmds: [make build]
+  check:
+    cmds: [make check]
+  test:unit:
+    cmds: [make test-unit]
+  test:integration:
+    cmds: [make test-integration]
+  test:e2e:
+    cmds: [make test-e2e]
+  test:race:
+    cmds: [make test-race]
+  contract:generate:
+    cmds: [make openapi]
+  contract:check:
+    cmds: [make contract-check]
+  migrations:up:
+    cmds: [make migrate]
