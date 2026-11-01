@@ -50,7 +50,7 @@ for optional PostgreSQL/telemetry and [operations](docs/operations.md) for produ
 - Users domain/use cases, HTTP DTOs, memory and PostgreSQL repositories.
 - API-key authentication and RS256 JWT verification using static public keys or JWKS.
 - Structured `slog`, colored local console, component initialization timing, configurable levels, OTLP logs/metrics/traces, New Relic OTLP support.
-- Local feature flags or LaunchDarkly, with explicit fallback values.
+- Typed boolean/string/enum/list/JSON flags with local values, LaunchDarkly or offline SDK files and named fallbacks.
 - SIGHUP reload for log level/local flag values; other changes require restart.
 - SIGINT/SIGTERM draining, startup unwinding, bounded resource cleanup.
 - Testify assertions and feature-local Mockery generation; unit, database integration, real-process e2e and architecture-boundary checks.

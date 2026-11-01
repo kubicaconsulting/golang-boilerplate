@@ -8,6 +8,7 @@ import (
 	"slices"
 	"time"
 
+	"boilerplate/internal/platform/featureflags/definitions"
 	userdomain "boilerplate/internal/users/domain"
 )
 
@@ -89,7 +90,7 @@ func (s *Service) List(ctx context.Context, actor Actor, limit, offset int) ([]u
 	if limit < 1 || limit > 100 || offset < 0 || offset > 100000 {
 		return nil, userdomain.ErrInvalid
 	}
-	if !s.flags.Bool(ctx, "users-list", actor.Subject, true) {
+	if !s.flags.Bool(ctx, definitions.UsersListKey, actor.Subject, definitions.UsersListFallback) {
 		return nil, ErrDisabled
 	}
 

@@ -26,8 +26,6 @@ telemetry:
 flags:
   provider: local
   init_timeout: 5s
-  values:
-    users-list: true
 shutdown:
   drain_timeout: 10s
   cleanup_timeout: 5s

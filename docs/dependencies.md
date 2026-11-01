@@ -136,3 +136,16 @@ Docker daemon or additional production infrastructure is required.
 References: [Mockery release](https://github.com/vektra/mockery/releases/tag/v3.9.0),
 [Testify template](https://vektra.github.io/mockery/latest/template/testify/) and
 [generator configuration](https://vektra.github.io/mockery/latest/configuration/).
+
+
+## Offline flag data review — 2026-11-01
+
+The official LaunchDarkly SDK ldfiledata package is now imported for file-backed evaluation.
+It activates the SDK's existing gopkg.in/ghodss/yaml.v1 v1.0.0 and gopkg.in/yaml.v2 v2.3.0
+runtime imports (the loader supports both JSON and YAML). These are upstream SDK choices already
+present at exactly these versions in the reviewed 190-module inventory. No new module or selected
+version was added. Their indirect requirements now appear in go.mod. Additional go.sum entries
+belong to the already selected upstream YAML test graph (check.v1, kr/pretty, kr/text and
+rogpeppe/go-internal); they do not add service imports. Manifests and before/after module files
+were reviewed in a separate temporary checkout before applying the changes. The implementation
+uses the official SDK parser rather than an independent wrapper or custom rule engine.

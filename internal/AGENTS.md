@@ -6,7 +6,15 @@ Apply the root code-clarity rules and the human review checklist in docs/code-qu
   Follow docs/code-quality.md. Never disable a compatible checker just to hide findings; any exception
   needs minimal scope, a specific checker and an explanation.
 - Domain code imports only the standard library. Application code imports its domain
-  and declares the narrow ports it consumes. No transport/provider types in these layers.
+  and declares the narrow ports it consumes. Application code may also import the SDK-free
+  platform/featureflags/definitions package for flag key/fallback constants. No transport/provider
+  types in these layers. Declare flag keys and fallbacks there, reference named constants in use
+  cases and configuration defaults, and keep deployment overrides in configuration. Never import
+  the concrete featureflags provider or SDK into application code. Keep ports narrow: request only
+  the evaluation methods the feature consumes. Validate JSON business schemas after decoding, handle
+  Enum/JSON definition errors, and use fresh fallback slices instead of mutable global defaults.
+  File provider mode must use the official SDK source with events/diagnostics disabled; invalid
+  initial files fail startup and clients must close. Keep SDK file paths static until restart.
 - Only internal/app selects concrete adapters and owns process resources. Never pass a
   shared Server/config/client bag to a use case; inject its actual dependencies.
 - Use domain terms for business names and short, conventional names where the scope makes their

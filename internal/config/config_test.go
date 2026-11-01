@@ -3,6 +3,8 @@ package config_test
 import (
 	"crypto/sha256"
 	"encoding/hex"
+	"encoding/json"
+	"math"
 	"os"
 	"path/filepath"
 	"strings"
@@ -27,7 +29,7 @@ func TestPrecedenceAndLists(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if c.Logging.Level != "warn" || c.Flags.Values["users-list"] || len(c.Auth.APIKeys[0].Scopes) != 2 {
+	if c.Logging.Level != "warn" || c.Flags.Values["users-list"] != false || len(c.Auth.APIKeys[0].Scopes) != 2 {
 		t.Fatal("overrides not applied")
 	}
 }
@@ -127,7 +129,7 @@ func TestOptionalLocalFilesAndMapReplacement(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(c.Flags.Values) != 1 || !c.Flags.Values["another-flag"] {
+	if len(c.Flags.Values) != 1 || c.Flags.Values["another-flag"] != true {
 		t.Fatal("environment map must replace defaults")
 	}
 }
@@ -176,5 +178,64 @@ func TestLoggingFormatsAndColor(t *testing.T) {
 	t.Setenv("APP_LOGGING_FORMAT", "unknown")
 	if _, err := config.Load(dir(t), "test"); err == nil {
 		t.Fatal("invalid log format accepted")
+	}
+}
+
+func TestFlagConfiguration(t *testing.T) {
+	t.Setenv("APP_FLAGS_PROVIDER", "file")
+	t.Setenv("APP_FLAGS_FILES", `["configs/flags.local.json","another.json"]`)
+	t.Setenv("APP_FLAGS_VALUES", `{"enabled":true,"mode":"summary","regions":["us"],"settings":{"limit":10}}`)
+	c, err := config.Load(dir(t), "test")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if c.Flags.Provider != "file" || len(c.Flags.Files) != 2 || c.Flags.Values["mode"] != "summary" {
+		t.Fatal("structured flag environment settings not loaded")
+	}
+	changed := c
+	changed.Flags.Values = map[string]any{"enabled": false}
+	if !c.SameStatic(changed) {
+		t.Fatal("flag value updates should be dynamic")
+	}
+	changed.Flags.Files = []string{"different.json"}
+	if c.SameStatic(changed) {
+		t.Fatal("file source changes require restart")
+	}
+	for _, flags := range []config.Flags{
+		{Provider: "file"},
+		{Provider: "file", Files: []string{" "}},
+		{Provider: "local", Values: map[string]any{"invalid": math.NaN()}},
+		{Provider: "unsupported"},
+	} {
+		candidate := c
+		flags.InitTimeout = c.Flags.InitTimeout
+		candidate.Flags = flags
+		if candidate.Validate() == nil {
+			t.Fatal("invalid flag configuration accepted")
+		}
+	}
+}
+
+func TestStructuredFlagYAML(t *testing.T) {
+	directory := t.TempDir()
+	t.Setenv("APP_AUTH_API_KEYS",
+		`[{"id":"test","sha256":"`+strings.Repeat("a", 64)+`","subject":"test","scopes":["users:read"]}]`)
+	source := []byte(`flags:
+  values:
+    mode: summary
+    regions: [us, eu]
+    settings:
+      limit: 10
+`)
+	if err := os.WriteFile(filepath.Join(directory, "base.yaml"), source, 0600); err != nil {
+		t.Fatal(err)
+	}
+	c, err := config.Load(directory, "test")
+	if err != nil {
+		t.Fatal(err)
+	}
+	encoded, err := json.Marshal(c.Flags.Values["settings"])
+	if err != nil || string(encoded) != `{"limit":10}` || c.Flags.Values["mode"] != "summary" {
+		t.Fatal("nested YAML flag values not retained")
 	}
 }

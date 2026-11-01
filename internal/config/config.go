@@ -19,6 +19,8 @@ import (
 	"strings"
 	"time"
 
+	"boilerplate/internal/platform/featureflags/definitions"
+
 	"go.yaml.in/yaml/v3"
 )
 
@@ -109,12 +111,13 @@ type JWT struct {
 	PublicKeyPEM string `yaml:"public_key_pem"`
 }
 
-// Flags selects the evaluation provider and explicit boolean fallback values.
+// Flags selects the evaluation provider and JSON-compatible local fallback overrides.
 type Flags struct {
-	Provider    string          `yaml:"provider"`
-	SDKKey      string          `yaml:"sdk_key"`
-	InitTimeout time.Duration   `yaml:"init_timeout"`
-	Values      map[string]bool `yaml:"values"`
+	Provider    string         `yaml:"provider"`
+	SDKKey      string         `yaml:"sdk_key"`
+	InitTimeout time.Duration  `yaml:"init_timeout"`
+	Values      map[string]any `yaml:"values"`
+	Files       []string       `yaml:"files"`
 }
 
 // Defaults returns fresh local-development defaults without authentication credentials.
@@ -145,7 +148,7 @@ func Defaults() Config {
 		Flags: Flags{
 			Provider:    "local",
 			InitTimeout: 5 * time.Second,
-			Values:      map[string]bool{"users-list": true},
+			Values:      map[string]any{definitions.UsersListKey: definitions.UsersListFallback},
 		},
 		Shutdown: Shutdown{
 			DrainTimeout:     10 * time.Second,
@@ -415,11 +418,22 @@ func (c Config) validateAuthentication() error {
 }
 
 func (c Config) validateFlags() error {
-	if c.Flags.Provider != "local" && c.Flags.Provider != "launchdarkly" {
+	if c.Flags.Provider != "local" && c.Flags.Provider != "launchdarkly" && c.Flags.Provider != "file" {
 		return errors.New("unsupported flags.provider")
 	}
 	if c.Flags.Provider == "launchdarkly" && c.Flags.SDKKey == "" {
 		return errors.New("LaunchDarkly SDK key required")
+	}
+	if c.Flags.Provider == "file" && len(c.Flags.Files) == 0 {
+		return errors.New("file flags provider requires flags.files")
+	}
+	for _, file := range c.Flags.Files {
+		if strings.TrimSpace(file) == "" {
+			return errors.New("flags.files entries must not be empty")
+		}
+	}
+	if _, err := json.Marshal(c.Flags.Values); err != nil {
+		return errors.New("flags.values must contain valid JSON values")
 	}
 	return nil
 }

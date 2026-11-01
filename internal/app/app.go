@@ -160,8 +160,10 @@ func (r *Runtime) Reload(c config.Config) error {
 	var level slog.Level
 	_ = level.UnmarshalText([]byte(c.Logging.Level))
 
+	if err := r.flags.Update(c.Flags.Values); err != nil {
+		return err
+	}
 	r.telemetry.Level.Set(level)
-	r.flags.Update(c.Flags.Values)
 	r.Logger.Info("runtime configuration reloaded")
 	return nil
 }

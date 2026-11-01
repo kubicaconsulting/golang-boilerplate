@@ -23,7 +23,10 @@ and a local OTLP receiver. Some default tests bind localhost, without external d
 
 E2E builds the actual executable, opens a real listener, verifies users/auth/health, sends SIGHUP,
 then SIGTERM and checks successful exit. Tests are controlled by build tags and run explicitly.
-No Clerk, LaunchDarkly, New Relic or other SaaS credentials are needed.
+No Clerk, LaunchDarkly, New Relic or other SaaS credentials are needed. Feature-flag tests cover
+boolean/string/enum/list/JSON values, concurrent snapshot updates, file-backed targeting and standard
+segments, multiple files, malformed input and strict file startup failure. Offline SDK files use
+local data with analytics/diagnostics disabled.
 
 ## Coverage policy
 

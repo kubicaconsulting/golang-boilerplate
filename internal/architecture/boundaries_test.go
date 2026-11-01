@@ -28,12 +28,17 @@ func TestDependencyBoundaries(t *testing.T) {
 			isNonStandard := strings.Contains(value, ".") || strings.HasPrefix(value, "boilerplate/")
 			isDomain := strings.Contains(path, "/domain/")
 			isApplication := strings.Contains(path, "/application/")
+			isFlagDefinitions := strings.Contains(path, "/platform/featureflags/definitions/")
+			if isFlagDefinitions && isNonStandard {
+				t.Errorf("flag definitions %s imports %s", path, value)
+			}
 			if isDomain && isNonStandard {
 				t.Errorf("domain %s imports %s", path, value)
 			}
 			if isApplication &&
 				isNonStandard &&
-				!strings.HasPrefix(value, "boilerplate/internal/users/domain") {
+				!strings.HasPrefix(value, "boilerplate/internal/users/domain") &&
+				value != "boilerplate/internal/platform/featureflags/definitions" {
 				t.Errorf("application %s imports %s", path, value)
 			}
 			if !strings.Contains(path, "/app/") && strings.Contains(value, "boilerplate/internal/app") {

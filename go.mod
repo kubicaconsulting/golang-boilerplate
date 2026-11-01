@@ -91,4 +91,6 @@ require (
 	google.golang.org/genproto/googleapis/api v0.0.0-20260928230214-8a89bd6388cc // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20260928230214-8a89bd6388cc // indirect
 	google.golang.org/grpc v1.83.2 // indirect
+	gopkg.in/ghodss/yaml.v1 v1.0.0 // indirect
+	gopkg.in/yaml.v2 v2.3.0 // indirect
 )

@@ -46,7 +46,10 @@ A future stateless service can remove this feature-specific requirement. Additio
 their own configuration and repository implementation, selected in the composition root.
 
 A boundary test rejects external/domain dependencies, infrastructure imports in users use
-cases, and lower-layer imports of internal/app. Tests may use concrete adapters to assemble
+cases, and lower-layer imports of internal/app. The narrow exception is the SDK-free
+internal/platform/featureflags/definitions package: it contains shared flag key/fallback constants,
+and the boundary test rejects non-standard imports there. This does not permit application imports
+of the featureflags provider or LaunchDarkly SDK. Tests may use concrete adapters to assemble
 fixtures. Extend enforcement when adding features.
 
 ## Foundation and extension policy

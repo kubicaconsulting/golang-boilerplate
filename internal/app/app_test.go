@@ -24,7 +24,7 @@ func TestReload(t *testing.T) {
 	}
 	defer func() { _ = r.Close(context.Background()) }()
 	next := c
-	next.Flags.Values = map[string]bool{"users-list": false}
+	next.Flags.Values = map[string]any{"users-list": false}
 	next.Logging.Level = "warn"
 	if err = r.Reload(next); err != nil {
 		t.Fatal(err)

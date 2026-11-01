@@ -82,3 +82,13 @@ Host-run processes use http://localhost:4318 instead. Optional profiles can be c
 Production and dev targets use different image tags, so switching modes cannot accidentally
 reuse Air for a compiled migration command. SERVICE_IMAGE overrides the image repository name.
 Dev dependencies are tooling only; Air is absent from the production image and service imports.
+
+
+## Offline feature flags in containers
+
+Compose forwards APP_FLAGS_PROVIDER and APP_FLAGS_FILES. Files must exist inside the container;
+add a read-only bind mount in a local Compose override when selecting the file provider, and use
+the container path in APP_FLAGS_FILES. For example, mount ./configs/flags.local.json at
+/run/flags/flags.json and set APP_FLAGS_FILES='["/run/flags/flags.json"]'. The production image includes the safe starter configs; mount account-specific snapshots instead
+of baking them into the image. File data loads once at startup; restart after changes.
+See [feature flags](feature-flags.md) for snapshot formats and remote export instructions.

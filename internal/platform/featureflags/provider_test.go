@@ -24,7 +24,9 @@ func TestLaunchDarklyAdapter(t *testing.T) {
 		t.Fatal(err)
 	}
 	p := &Provider{client: client, logger: observability.Discard()}
-	p.Update(nil)
+	if err = p.Update(nil); err != nil {
+		t.Fatal(err)
+	}
 	defer func() { _ = p.Close(context.Background()) }()
 	if !p.Bool(context.Background(), "users-list", "test-user", false) {
 		t.Fatal("provider value ignored")

@@ -267,3 +267,32 @@ Passed make check, make test-coverage (including race detection), shell syntax v
 diff --check. Inspected every profile record to verify it belongs to internal/ and excludes test
 source. No dependency or production behavior changes. PostgreSQL integration, e2e, Docker builds
 and hosted GitHub Actions were not rerun for this coverage-only configuration change.
+
+## Typed and offline feature flags — 2026-11-01
+
+Extended the evaluation provider with String, Enum, StringList and JSON alongside Bool. Enums
+validate allowed alternatives; invalid enum/JSON fallbacks are explicit definition errors. JSON
+business schemas remain application-owned. Local fallback overrides now accept JSON-compatible
+values, deep-copy nested state and publish atomically; rejected updates preserve the old snapshot.
+Returned lists/JSON cannot mutate snapshots or caller defaults. Runtime reload validates values
+before applying them and retains static provider/file-path boundaries.
+
+The file provider uses the official LaunchDarkly ldfiledata source with analytics disabled and
+diagnostics opted out. It evaluates full flags, standard segments and simplified flagValues without
+remote credentials. Missing/malformed files or duplicate keys fail initialization and close the
+partial client. The shipped configs/flags.local.json contains only the users-list starter. Files
+load once at startup; watching and automatic remote snapshot synchronization were not added.
+
+Passed make fmt check, make test-race, make test-coverage (80.96% application coverage), make build,
+make docker-config, normal memory e2e and file-provider memory e2e. Tests cover typed fallbacks,
+enum validation, wrong types, JSON ownership, concurrent publication, nested YAML/environment
+values, full targeting and standard segments, multiple files and file initialization failures.
+Both production/dev Docker targets built. A production-image process with networking disabled
+and a read-only offline snapshot reached readiness with provider=file, then exited successfully
+on Docker stop. Temporary container and image tags were removed.
+
+The selected inventory remains 190 modules with no version changes. Importing the official file
+loader activates the two already-selected upstream YAML runtime dependencies documented in
+dependencies.md. make vuln found zero reachable vulnerabilities and zero affected imported
+packages, retaining the same three required-module advisories. No live LaunchDarkly account,
+remote event delivery, hosted CI or PostgreSQL-backed e2e was verified for this change.
