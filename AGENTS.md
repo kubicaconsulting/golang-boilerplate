@@ -62,7 +62,7 @@ patterns or infrastructure present in another service.
 1. Keep changes within the requested capability; do not assume email, cron, queues or Redis.
 2. Add meaningful behavior tests, including relevant failure and cancellation paths.
 3. Run `make check` and `make test-race` for Go changes.
-4. For persistence changes, run `make test-integration` with a disposable TEST_DATABASE_DSN.
+4. For persistence changes, run `make test-integration` with TEST_DATABASE_ADMIN_DSN targeting a dedicated test PostgreSQL server.
 5. For HTTP/lifecycle/auth changes, run `make test-e2e`.
 6. For public API changes, run `make openapi`, review the spec diff, then `make contract-check`.
 7. Update Markdown documentation in the same change as behavior.
@@ -91,3 +91,12 @@ container configuration, and verify both production/dev builds when Docker is av
 - Build metadata must match the binary and OCI labels. Release from clean committed source, use unique
   IDs, and promote the same image digest; never commit or publish on the user's behalf without authorization.
 - Keep the zero-infrastructure default and optional PostgreSQL parity path documented and tested.
+
+## Test database isolation
+
+Keep PostgreSQL container ownership in CI or local Compose. Use tests/testdb.CreateDatabase for
+each independent integration or PostgreSQL e2e scenario; related assertions may share that database.
+Unique record IDs alone do not isolate lists, counts, pagination or broad mutations. Apply real
+application migrations and register service/pool cleanup after database creation so resources close
+before the database is dropped. Never use production/admin service credentials in normal application
+configuration. Keep container-dependent suites separate from make check and pre-commit checks.

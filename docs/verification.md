@@ -225,3 +225,25 @@ unchanged. Mockery runs as a pinned standalone tool, outside the service depende
 make vuln reports zero reachable vulnerabilities and zero affected imported packages, with the
 same three required-module advisories documented above. Persistence integration, process e2e,
 Docker builds, live providers and hosted CI were not rerun for this test-tooling-only change.
+
+
+## Isolated scenario databases — 2026-11-01
+
+PostgreSQL remains externally owned by CI or local Compose. A shared, build-tagged test helper
+creates one database per independent scenario on that server and registers bounded cleanup.
+Integration and PostgreSQL e2e now use explicit administrative DSNs, apply existing migrations
+to isolated databases and close pools/processes before dropping them. Related assertions share
+one scenario database. No Testcontainers or other dependency was added. CI health checks and
+connection variables now target the postgres maintenance database.
+
+Passed make fmt check and make test-race, PostgreSQL make test-integration, memory make test-e2e,
+PostgreSQL production-mode make test-e2e, and race-enabled PostgreSQL integration tests.
+Integration and PostgreSQL e2e were also run concurrently against one disposable PostgreSQL 17
+container. The isolation regression creates identical tables and primary keys in concurrent
+scenario databases and verifies both databases disappear after cleanup. A temporary source copy
+injected an intentional fatal e2e assertion after readiness; the test failed as expected, reaped
+its service process and dropped its database without cleanup errors. A final server query found
+zero scenario databases. The disposable verification container was removed afterward.
+
+These checks establish isolation and cleanup behavior, not a speed improvement. No before/after
+benchmark, hosted CI run, Docker application rebuild or live-provider verification is claimed.

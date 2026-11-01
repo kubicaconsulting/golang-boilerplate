@@ -71,24 +71,44 @@ e2e. Testify and Mockery are test/development dependencies, not production DI in
 
 ## PostgreSQL integration
 
-Use a dedicated disposable database. Integration tests apply migrations and write/delete users;
-never point them at a shared or production database.
+PostgreSQL stays externally managed: CI owns its service container and local development uses
+Compose. Each independent integration or PostgreSQL e2e scenario creates a uniquely named database
+through `tests/testdb.CreateDatabase`, applies real application migrations and drops it in cleanup.
+Use a dedicated test server; the administrative role needs database creation/removal privileges.
+Never supply production or shared business-database credentials.
 
 ```sh
-docker compose --profile database up -d postgres
-# Create a separate database (or use a separate container) for tests:
-docker compose exec postgres createdb -U app app_test
-export TEST_DATABASE_DSN='postgres://app:local-only-password@localhost:5432/app_test?sslmode=disable'
+docker compose --profile database up -d --wait postgres
+export TEST_DATABASE_ADMIN_DSN='postgres://app:local-only-password@localhost:5432/postgres?sslmode=disable'
 make test-integration
-E2E_DATABASE_DSN="$TEST_DATABASE_DSN" make test-e2e
+E2E_DATABASE_ADMIN_DSN="$TEST_DATABASE_ADMIN_DSN" make test-e2e
 ```
+
+These administrative URLs connect to an existing maintenance database, not the database under test.
+The helper returns a DSN targeting the newly created scenario database. Register pool and service
+cleanup after creating the database: Go runs cleanup callbacks in reverse registration order.
+Database cleanup uses an independent deadline and reports failures; connections must close before
+DROP DATABASE. The external container remains running until its owner removes it.
 
 Integration checks apply/checksum migrations, verify idempotence, real unique constraints,
 repository round trips, cancellation, transaction rollback and configured pool limits. Missing
-TEST_DATABASE_DSN is a failure, not a silent skip. E2E_DATABASE_DSN switches the full-process
-suite to PostgreSQL and applies migrations before startup. It creates unique records and expects
-a disposable database; discard it after the suite. CI provisions PostgreSQL and runs both memory
-and PostgreSQL e2e modes.
+TEST_DATABASE_ADMIN_DSN fails explicitly. E2E_DATABASE_ADMIN_DSN selects PostgreSQL-backed
+production-mode process tests; leaving it unset retains memory e2e. CI runs both modes. The old
+TEST_DATABASE_DSN and E2E_DATABASE_DSN variables are replaced by these explicit administrative URLs.
+
+Related assertions may share one scenario database (for example create, retrieve and duplicate
+rejection). Independent scenarios involving lists, counts, pagination or broad mutations must use
+separate databases; unique records and eventual deletion alone do not isolate concurrent tests.
+Use t.Parallel only for independent scenarios. Targets cap test parallelism at four; separate go test
+processes each have their own limit and must also be bounded by the invoking runner. They can share
+the same server because generated database names do not collide. CPU, connections and cluster-wide
+settings remain shared. Tests do not start containers and require no Testcontainers dependency.
+
+The isolation regression exercises concurrent databases using identical table/record names and
+checks that cleanup removes both databases. E2E cleanup waits for the child process to exit before
+its database is dropped, including assertion failures. The existing lifecycle scenario builds one
+binary and uses one process/database for its related assertions; no speed improvement is claimed
+without measurement.
 
 Use narrow fakes when testing application decisions, real database semantics for SQL, and real
 processes for signal behavior. Do not require 100% coverage or add tests that merely restate code.

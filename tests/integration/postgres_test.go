@@ -14,13 +14,12 @@ import (
 	"boilerplate/internal/users/adapters/postgres"
 	users "boilerplate/internal/users/domain"
 	"boilerplate/migrations"
+	"boilerplate/tests/testdb"
 )
 
 func TestPostgresRepository(t *testing.T) {
-	dsn := os.Getenv("TEST_DATABASE_DSN")
-	if dsn == "" {
-		t.Fatal("TEST_DATABASE_DSN must point to a disposable, dedicated test database")
-	}
+	t.Parallel()
+	dsn := testdb.CreateDatabase(t, os.Getenv("TEST_DATABASE_ADMIN_DSN"))
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 	c := config.Defaults().Database
@@ -50,11 +49,6 @@ func TestPostgresRepository(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	t.Cleanup(func() {
-		cleanup, stop := context.WithTimeout(context.Background(), time.Second)
-		defer stop()
-		_, _ = p.Exec(cleanup, "DELETE FROM users WHERE id=$1", id)
-	})
 	if err = repo.Create(ctx, u); err != nil {
 		t.Fatal(err)
 	}
@@ -69,7 +63,7 @@ func TestPostgresRepository(t *testing.T) {
 		t.Fatal(err)
 	}
 	rows, err := repo.List(ctx, 100, 0)
-	if err != nil || len(rows) == 0 {
+	if err != nil || len(rows) != 1 {
 		t.Fatal("list failed", err)
 	}
 	canceled, stop := context.WithCancel(ctx)

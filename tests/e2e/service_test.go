@@ -20,6 +20,8 @@ import (
 	"syscall"
 	"testing"
 	"time"
+
+	"boilerplate/tests/testdb"
 )
 
 type lockedBuffer struct {
@@ -89,14 +91,15 @@ func TestServiceLifecycle(t *testing.T) {
 	defer cancel()
 	environment := "test"
 	configDir := "configs"
-	if os.Getenv("E2E_DATABASE_DSN") != "" {
+	if os.Getenv("E2E_DATABASE_ADMIN_DSN") != "" {
 		environment = "production"
 		configDir = filepath.Join(t.TempDir(), "missing")
 	}
 	cmd := exec.CommandContext(ctx, binary, "--env", environment, "--config-dir", configDir)
 	cmd.Dir = root
 	cmd.Env = append(os.Environ(), "APP_HTTP_ADDRESS="+address, "APP_LOGGING_LEVEL=info", "APP_LOGGING_FORMAT=json")
-	if dsn := os.Getenv("E2E_DATABASE_DSN"); dsn != "" {
+	if adminDSN := os.Getenv("E2E_DATABASE_ADMIN_DSN"); adminDSN != "" {
+		dsn := testdb.CreateDatabase(t, adminDSN)
 		// Use a separate credential in deployments; the public local key must be rejected.
 		digest := sha256.Sum256([]byte("e2e-private-credential"))
 		cmd.Env = append(
@@ -121,7 +124,19 @@ func TestServiceLifecycle(t *testing.T) {
 	}
 	exited := make(chan error, 1)
 	go func() { exited <- cmd.Wait() }()
-	t.Cleanup(func() { _ = cmd.Process.Kill() })
+	processExited := false
+	t.Cleanup(func() {
+		if processExited {
+			return
+		}
+		_ = cmd.Process.Kill()
+		select {
+		case err = <-exited:
+			// A nonzero exit is expected after forced cleanup.
+		case <-time.After(10 * time.Second):
+			t.Error("service process cleanup timed out")
+		}
+	})
 	base := "http://" + address
 	client := &http.Client{Timeout: time.Second}
 	defer client.CloseIdleConnections()
@@ -198,6 +213,7 @@ func TestServiceLifecycle(t *testing.T) {
 	}
 	select {
 	case err = <-exited:
+		processExited = true
 		if err != nil {
 			t.Fatalf("shutdown: %v %s", err, logs.String())
 		}

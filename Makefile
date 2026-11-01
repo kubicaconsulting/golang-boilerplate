@@ -54,9 +54,9 @@ test-unit:
 test-race:
 	$(GO) test -race ./...
 test-integration:
-	$(GO) test -tags=integration ./tests/integration -count=1
+	$(GO) test -tags=integration ./tests/integration -count=1 -parallel=4
 test-e2e:
-	$(GO) test -tags=e2e ./tests/e2e -count=1
+	$(GO) test -tags=e2e ./tests/e2e -count=1 -parallel=4
 openapi:
 	@mkdir -p api
 	@tmp=$$(mktemp); $(GO) run ./cmd/openapi > "$$tmp" && mv "$$tmp" api/openapi.json || { rm -f "$$tmp"; exit 1; }
