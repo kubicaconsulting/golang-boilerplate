@@ -4,7 +4,7 @@ GOVULNCHECK_VERSION := v1.9.0
 TASK_VERSION := v3.54.0
 AIR_VERSION := v1.67.4
 MOCKERY_VERSION := v3.9.0
-.PHONY: mocks mocks-check hooks-install lint-config-check lint-fix dev-postgres version release-image dev docker-up docker-dev docker-down docker-config deps-check deps-inventory run build fmt format-check vet lint test test-unit test-race test-integration test-e2e openapi contract-check check vuln migrate task clean
+.PHONY: test-coverage coverage-check mocks mocks-check hooks-install lint-config-check lint-fix dev-postgres version release-image dev docker-up docker-dev docker-down docker-config deps-check deps-inventory run build fmt format-check vet lint test test-unit test-race test-integration test-e2e openapi contract-check check vuln migrate task clean
 mocks:
 	$(GO) run github.com/vektra/mockery/v3@$(MOCKERY_VERSION) --config .mockery.yml
 mocks-check:
@@ -53,6 +53,15 @@ test-unit:
 	$(GO) test ./...
 test-race:
 	$(GO) test -race ./...
+test-coverage:
+	@mkdir -p coverage
+	@rm -f coverage/coverage.out coverage/functions.txt coverage/index.html
+	$(GO) test -race -count=1 -covermode=atomic -coverpkg=./internal/... -coverprofile=coverage/coverage.out ./...
+	$(GO) tool cover -func=coverage/coverage.out > coverage/functions.txt
+	$(GO) tool cover -html=coverage/coverage.out -o coverage/index.html
+	$(MAKE) coverage-check
+coverage-check:
+	./scripts/check-coverage.sh
 test-integration:
 	$(GO) test -tags=integration ./tests/integration -count=1 -parallel=4
 test-e2e:

@@ -100,3 +100,11 @@ Unique record IDs alone do not isolate lists, counts, pagination or broad mutati
 application migrations and register service/pool cleanup after database creation so resources close
 before the database is dropped. Never use production/admin service credentials in normal application
 configuration. Keep container-dependent suites separate from make check and pre-commit checks.
+
+## Coverage policy
+
+CI enforces default-suite statement coverage through make test-coverage and .coverage-threshold.
+Coverage includes application packages under internal/; cmd/, migrations/ and tests/ are outside
+the denominator. Keep all application packages in scope; do not lower the threshold or add further
+exclusions to mask missing tests. Prefer meaningful behavior and failure-path assertions. Increase the floor deliberately as
+coverage improves. Integration and subprocess e2e coverage are separate from this default-suite gate.

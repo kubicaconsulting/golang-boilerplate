@@ -44,6 +44,10 @@ tasks:
     cmds: [make test-integration]
   test:e2e:
     cmds: [make test-e2e]
+  test:coverage:
+    cmds: [make test-coverage]
+  coverage:check:
+    cmds: [make coverage-check]
   test:race:
     cmds: [make test-race]
   contract:generate:

@@ -247,3 +247,23 @@ zero scenario databases. The disposable verification container was removed after
 
 These checks establish isolation and cleanup behavior, not a speed improvement. No before/after
 benchmark, hosted CI run, Docker application rebuild or live-provider verification is claimed.
+
+## CI coverage policy — 2026-11-01
+
+CI runs make test-coverage with race detection, atomic counters, -count=1 and cross-package
+instrumentation restricted to ./internal/.... The full default suite still runs across ./....
+The denominator includes application domain/use cases, adapters, platform, composition and build
+metadata, excluding cmd/, migrations/, tests/ and generated test mocks. The minimum remains 64%,
+declared in .coverage-threshold. Application-only coverage measures 78.04% (572/733 statements).
+Tagged database tests and child-process e2e are not included in this gate.
+
+The checker merges repeated source blocks from different test binaries before statement-weighted
+aggregation and compares the unrounded result with the floor. Disposable fixtures verified exact
+threshold acceptance, failure just below the threshold before rounding, cross-binary hit merging,
+conflicting statement-count rejection, weighting and invalid/empty input rejection. CI uploads raw,
+function-level and HTML coverage reports with 14-day retention, even on threshold failure.
+
+Passed make check, make test-coverage (including race detection), shell syntax validation and git
+diff --check. Inspected every profile record to verify it belongs to internal/ and excludes test
+source. No dependency or production behavior changes. PostgreSQL integration, e2e, Docker builds
+and hosted GitHub Actions were not rerun for this coverage-only configuration change.

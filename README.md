@@ -118,6 +118,7 @@ make check                 # dependency review, format, vet, lint, tests, contra
 make mocks                 # regenerate selected dependency mocks
 make mocks-check           # check generated mock drift without modifying files
 make test-race
+make test-coverage         # race tests, coverage reports and CI threshold
 make test-e2e              # built executable + real HTTP + signals
 make openapi               # regenerate api/openapi.json
 make build                 # embeds build identity; inspect bin/service --version

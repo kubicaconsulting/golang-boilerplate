@@ -8,6 +8,7 @@ make test-unit
 make mocks                 # regenerate selected interface mocks
 make mocks-check           # verify generated output without changing source
 make test-race
+make test-coverage          # race detection, reports and coverage threshold
 make test-e2e
 make check
 make vuln
@@ -23,6 +24,35 @@ and a local OTLP receiver. Some default tests bind localhost, without external d
 E2E builds the actual executable, opens a real listener, verifies users/auth/health, sends SIGHUP,
 then SIGTERM and checks successful exit. Tests are controlled by build tags and run explicitly.
 No Clerk, LaunchDarkly, New Relic or other SaaS credentials are needed.
+
+## Coverage policy
+
+CI runs `make test-coverage` in place of its separate race-test step. This runs the default suite
+with race detection, atomic coverage counters, uncached test execution and `-coverpkg=./internal/...`.
+Only application packages under `internal/` contribute to the coverage denominator, including
+domain, application, adapters, platform, composition and build metadata. Commands under `cmd/`,
+migration tooling under `migrations/` and test infrastructure under `tests/` are excluded. The default
+suite still runs across `./...`; cross-package calls contribute coverage. Generated mocks end in
+`_test.go` and are naturally outside the production statement denominator.
+
+The minimum remains **64%**, declared in `.coverage-threshold`. This is a statement-weighted total
+for the application scope, not an average of package percentages. The measured application-only
+baseline is **78.04%**.
+`scripts/check-coverage.sh` compares underlying covered/total statement counts before rounding;
+repeated blocks from different test binaries are counted once, with hits combined; coverage below
+the minimum fails CI. Change the policy file deliberately as meaningful tests improve
+coverage; do not lower it or exclude code just to pass CI. Coverage does not establish assertion
+quality, branch coverage or correctness, and 100% is not a goal by itself.
+
+Reports are generated under ignored `coverage/`: `coverage.out` for Go tooling, `functions.txt`
+for per-function percentages, and `index.html` for source-level inspection. Open index.html locally
+or download the CI `coverage` artifact (14-day retention), including when the threshold fails.
+`make coverage-check` checks an existing profile without rerunning tests. Test failures also fail
+the coverage target; reports from a failed test run may be incomplete.
+
+This gate measures the default suite only. Tagged PostgreSQL integration tests and separate-process
+e2e coverage are not merged into the percentage. They remain independent CI checks. Normal unit
+tests, make check and pre-commit stay unchanged; local coverage needs no Docker or provider credentials.
 
 ## Assertions and generated mocks
 
