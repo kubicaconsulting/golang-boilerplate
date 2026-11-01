@@ -53,7 +53,7 @@ for optional PostgreSQL/telemetry and [operations](docs/operations.md) for produ
 - Local feature flags or LaunchDarkly, with explicit fallback values.
 - SIGHUP reload for log level/local flag values; other changes require restart.
 - SIGINT/SIGTERM draining, startup unwinding, bounded resource cleanup.
-- Unit, database integration, real-process e2e and architecture-boundary checks.
+- Testify assertions and feature-local Mockery generation; unit, database integration, real-process e2e and architecture-boundary checks.
 - Gin HTTP routing with Huma-generated OpenAPI 3.1 and a pinned development-tool workflow.
 
 Email, cron, Redis, job queues, identity issuance and cloud deployment are deliberately
@@ -115,6 +115,8 @@ to add a directory or interface for every small change. See [architecture](docs/
 ```sh
 make hooks-install         # enable tracked pre-commit checks for this clone
 make check                 # dependency review, format, vet, lint, tests, contract drift
+make mocks                 # regenerate selected dependency mocks
+make mocks-check           # check generated mock drift without modifying files
 make test-race
 make test-e2e              # built executable + real HTTP + signals
 make openapi               # regenerate api/openapi.json

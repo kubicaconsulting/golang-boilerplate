@@ -1,5 +1,9 @@
 version: '3'
 tasks:
+  mocks:
+    cmds: [make mocks]
+  mocks:check:
+    cmds: [make mocks-check]
   hooks:install:
     cmds: [make hooks-install]
   fmt:

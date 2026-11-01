@@ -30,9 +30,14 @@ changes add a migration and run integration tests; lifecycle changes run e2e tes
 Do not add tests that merely repeat implementation details or demand external SaaS accounts.
 
 The Go module path is `boilerplate`. When creating your real service, replace
-that path consistently in go.mod, imports and the architecture-boundary test. Rename service
+that path consistently in go.mod, imports, .mockery.yml, linker paths and the architecture-boundary test. Rename service
 identity in configs/base.yaml. Review public operations/scopes and local defaults before deploy.
 
 Dependency changes follow [the dependency policy](docs/dependencies.md). Review the entire module
 graph diff before `make deps-inventory`; do not automatically approve unknown modules. Run
 `make docker-config` for Compose changes and build both Dockerfile targets for container changes.
+
+Use `make mocks` after changing interfaces selected in `.mockery.yml`; include the generated
+`mocks_test.go` changes in the same commit. `make mocks-check` verifies generation in an isolated
+copy without editing or staging your files. See [testing](docs/testing.md#assertions-and-generated-mocks)
+for Testify expectations, assertion guidance and the users feature example.

@@ -9,6 +9,7 @@ convenience wrappers, abandoned forks, custom cryptography and unchecked replace
 
 | Dependency | Provenance and reason |
 |---|---|
+| [Testify](https://github.com/stretchr/testify) | Established Go assertions and mock expectations; v1.12.1 used only in tests |
 | [CoreOS go-oidc](https://github.com/coreos/go-oidc) | Established OIDC verifier, cached JWKS/signature handling; uses maintained go-jose |
 | [golang-jwt/jwt](https://github.com/golang-jwt/jwt) | Established Go JWT project; registered-claim validation and RSA PEM parsing |
 | [Gin](https://github.com/gin-gonic/gin) | Official gin-gonic release v1.12.0; established router selected by the user; official Huma adapter |
@@ -115,3 +116,23 @@ It was already selected in the reviewed graph, and its x/sys dependency is alrea
 No new module or selected version is required; the 190-module inventory remains unchanged.
 Console rendering uses the standard library's slog attribute formatting, with no console wrapper
 library or additional logging framework. The existing runtime graph adds the official term module.
+
+## Testify and Mockery review — 2026-11-01
+
+Testify v1.12.1 was already selected in the reviewed graph. Direct test imports now use its
+assert, require and mock packages. Its official manifest requires stretchr/objx v0.5.3 (Go 1.20),
+updating the previously selected v0.5.2. Objx is maintained under the same Stretchr organization
+and supports Testify's mock implementation. The selected inventory remains 190 modules, with
+only this version change; production service imports and their versions are unchanged.
+
+Mockery v3.9.0 is pinned in Makefile and run with go run at that exact version, like the other
+standalone development tools. Its official release and manifest were reviewed: Go 1.26 minimum,
+embedded Testify template/schema, Go x/tools package loading/formatting, Cobra/Koanf configuration,
+Zerolog logging and upstream template dependencies. Its generator graph remains separate from the
+service go.mod; no generator library is imported by application code. Generated mocks live only
+in feature-local mocks_test.go files and do not ship in the service binary. No provider account,
+Docker daemon or additional production infrastructure is required.
+
+References: [Mockery release](https://github.com/vektra/mockery/releases/tag/v3.9.0),
+[Testify template](https://vektra.github.io/mockery/latest/template/testify/) and
+[generator configuration](https://vektra.github.io/mockery/latest/configuration/).

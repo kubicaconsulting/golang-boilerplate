@@ -1,0 +1,15 @@
+all: false
+recursive: false
+dir: '{{.InterfaceDir}}'
+filename: mocks_test.go
+pkgname: '{{.SrcPackageName}}_test'
+structname: 'Mock{{.InterfaceName}}'
+template: testify
+formatter: goimports
+force-file-write: true
+log-level: warn
+packages:
+  boilerplate/internal/users/application:
+    interfaces:
+      Repository:
+      Flags:

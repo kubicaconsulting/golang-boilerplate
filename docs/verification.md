@@ -204,3 +204,24 @@ and initialization logging together in construction order. Private console-handl
 narrow testpackage exception; no checker was disabled globally. make vuln reports zero reachable
 issues and zero affected imported packages, with the same three required-module advisories documented
 in the Gin verification above.
+
+
+## Testify and Mockery starter — 2026-11-01
+
+Added Testify v1.12.1 assertions and Mockery v3.9.0 generation for the users application's
+Repository and Flags ports. Generated mocks are feature-local, external-package test files;
+production interfaces and service behavior are unchanged. The users application tests demonstrate
+successful operations, input validation, authorization, cancellation, disabled flags and storage
+failures with fresh mocks and automatically verified expectations.
+
+Passed make fmt check, make test-race, make build, focused users application tests, shell syntax
+validation and git diff --check. make check includes isolated mock regeneration and comparison.
+A disposable Git fixture verified that valid output passes and stale, missing, obsolete and
+changed-interface output fails. Each case preserved source contents and left the Git index absent.
+
+The reviewed inventory still contains 190 modules; only stretchr/objx changes from v0.5.2 to
+v0.5.3. Production service imported modules and versions were compared before/after and are
+unchanged. Mockery runs as a pinned standalone tool, outside the service dependency graph.
+make vuln reports zero reachable vulnerabilities and zero affected imported packages, with the
+same three required-module advisories documented above. Persistence integration, process e2e,
+Docker builds, live providers and hosted CI were not rerun for this test-tooling-only change.

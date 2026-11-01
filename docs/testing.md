@@ -5,6 +5,8 @@ make lint-config-check
 make format-check
 make lint
 make test-unit
+make mocks                 # regenerate selected interface mocks
+make mocks-check           # verify generated output without changing source
 make test-race
 make test-e2e
 make check
@@ -21,6 +23,51 @@ and a local OTLP receiver. Some default tests bind localhost, without external d
 E2E builds the actual executable, opens a real listener, verifies users/auth/health, sends SIGHUP,
 then SIGTERM and checks successful exit. Tests are controlled by build tags and run explicitly.
 No Clerk, LaunchDarkly, New Relic or other SaaS credentials are needed.
+
+## Assertions and generated mocks
+
+Use standard Go testing with Testify `require` for prerequisites that must succeed and `assert`
+for independent outcomes. Use `require.ErrorIs` for wrapped/sentinel errors and `require.NoError`
+before inspecting successful results. Existing straightforward standard-library assertions remain
+valid; a new framework does not require rewriting unrelated tests.
+
+Mockery generates Testify mocks for interfaces explicitly listed in `.mockery.yml`. The starter
+selects the users application's `Repository` and `Flags` ports. Output is a single `mocks_test.go`
+file beside the interfaces, in the external `application_test` package. Generated constructors
+register expectation checks through `t.Cleanup`; create a fresh mock for each test/subtest.
+
+```go
+repository := NewMockRepository(t)
+flags := NewMockFlags(t)
+actor := application.Actor{Subject: "reader", Scopes: []string{"users:read"}}
+flags.EXPECT().Bool(t.Context(), "users-list", actor.Subject, true).Return(false).Once()
+service := application.NewService(repository, flags)
+
+_, err := service.List(t.Context(), actor, 20, 0)
+
+require.ErrorIs(t, err, application.ErrDisabled)
+```
+
+This verifies the disabled-feature outcome and that persistence is not called: the repository
+has no expected calls, so an unexpected access fails the test. Use exact arguments where they
+express a contract, and matchers for generated IDs/timestamps or other incidental values. Avoid
+locking tests to private implementation details or unnecessary call ordering.
+
+For another feature, add its consumer-owned package/interface names to `.mockery.yml`, retain
+`filename: mocks_test.go` and an external test package, then run `make mocks`. Commit generated
+files alongside interface changes; never edit them manually. Remove obsolete generated files
+when removing a package from the configuration. Small helpers should serve real repeated setup;
+the users tests demonstrate a feature-local service builder without a shared test framework.
+
+`make check` includes `make mocks-check`, so CI rejects missing, stale or obsolete mock output.
+The check generates in an isolated temporary copy of tracked and non-ignored new files, compares
+results and leaves the working tree and index untouched. Git and tar are required for this check;
+Go and the pinned generator may need initial dependency downloads. `make test-unit` and the commit
+hook use the checked-in mocks, keeping generation out of the normal fast test loop.
+
+Mocks cover application decisions and failures. Keep the in-memory adapter for local operation
+and adapter tests, real PostgreSQL for persistence integration, and real processes for lifecycle
+e2e. Testify and Mockery are test/development dependencies, not production DI infrastructure.
 
 ## PostgreSQL integration
 

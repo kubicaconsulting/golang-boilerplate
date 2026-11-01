@@ -56,7 +56,12 @@ Apply the root code-clarity rules and the human review checklist in docs/code-qu
   and credential changes require restart.
 - Keep OpenAPI metadata beside routes, DTO validation beside transport fields, and domain
   invariants in domain constructors. Keep errors/examples accurate.
-- Use narrow fakes for application tests, real PostgreSQL for persistence semantics, and
+- Use Testify require/assert for readable tests and Mockery for selected consumer-owned interfaces.
+  Configure generation explicitly in .mockery.yml; keep mocks in feature-local mocks_test.go files
+  under external test packages. Run make mocks after interface changes and make mocks-check before
+  finishing. Never edit generated mocks or import testing libraries into production code. Prefer
+  feature-local helpers for repeated setup; keep trivial handwritten fakes when they are clearer.
+- Use generated mocks or narrow fakes for application tests, real PostgreSQL for persistence semantics, and
   real-process e2e for signals. See docs/testing.md.
 - `internal/architecture/boundaries_test.go` enforces the current users boundary; extend it
   when introducing features rather than weakening existing rules.

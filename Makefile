@@ -3,7 +3,12 @@ GOLANGCI_VERSION := v2.15.0
 GOVULNCHECK_VERSION := v1.9.0
 TASK_VERSION := v3.54.0
 AIR_VERSION := v1.67.4
-.PHONY: hooks-install lint-config-check lint-fix dev-postgres version release-image dev docker-up docker-dev docker-down docker-config deps-check deps-inventory run build fmt format-check vet lint test test-unit test-race test-integration test-e2e openapi contract-check check vuln migrate task clean
+MOCKERY_VERSION := v3.9.0
+.PHONY: mocks mocks-check hooks-install lint-config-check lint-fix dev-postgres version release-image dev docker-up docker-dev docker-down docker-config deps-check deps-inventory run build fmt format-check vet lint test test-unit test-race test-integration test-e2e openapi contract-check check vuln migrate task clean
+mocks:
+	$(GO) run github.com/vektra/mockery/v3@$(MOCKERY_VERSION) --config .mockery.yml
+mocks-check:
+	GO="$(GO)" MOCKERY_VERSION="$(MOCKERY_VERSION)" ./scripts/check-mocks.sh
 hooks-install:
 	git config --local core.hooksPath .githooks
 dev-postgres:
@@ -57,7 +62,7 @@ openapi:
 	@tmp=$$(mktemp); $(GO) run ./cmd/openapi > "$$tmp" && mv "$$tmp" api/openapi.json || { rm -f "$$tmp"; exit 1; }
 contract-check:
 	@tmp=$$(mktemp); $(GO) run ./cmd/openapi > "$$tmp" && diff -u api/openapi.json "$$tmp"; status=$$?; rm -f "$$tmp"; exit $$status
-check: lint-config-check format-check deps-check vet lint test-unit contract-check
+check: lint-config-check format-check mocks-check deps-check vet lint test-unit contract-check
 vuln:
 	$(GO) run golang.org/x/vuln/cmd/govulncheck@$(GOVULNCHECK_VERSION) ./...
 migrate:
